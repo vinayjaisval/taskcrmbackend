@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Laravel API
+RewriteRule ^backend/api/(.*)$ backend/public/index.php [L,QSA]
+
+# Laravel public access
+RewriteRule ^backend/(.*)$ backend/public/$1 [L,QSA]
