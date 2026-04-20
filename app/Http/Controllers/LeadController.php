@@ -17,53 +17,52 @@ use Carbon\Carbon;
 
 use Mail;
 
-class LeadController extends Controller{
-  public function index(){
-   
-  }
+class LeadController extends Controller
+{
+  public function index() {}
 
-  public function add_lead($id, Request $request){
+  public function add_lead($id, Request $request)
+  {
 
     $request->validate([
-        'name' => 'required',
-        'status' => 'required'
+      'name' => 'required',
+      'status' => 'required'
     ]);
 
     // Assigneess --
     $ass_type = gettype($request->assignee);
-    if($ass_type == "string"){
-        $assignees = $request->assignee;
-        $ass_arr = explode (",", $assignees); 
-        $countAssignee = count($ass_arr);
-
+    if ($ass_type == "string") {
+      $assignees = $request->assignee;
+      $ass_arr = explode(",", $assignees);
+      $countAssignee = count($ass_arr);
     } else {
-        if(isset($request->assignee)){
-            $assignees = implode(",",$request->assignee);
-            $countAssignee = count($request->assignee);
-        } else {
-            $assignees = "";
-            $countAssignee = 0;
-        }
+      if (isset($request->assignee)) {
+        $assignees = implode(",", $request->assignee);
+        $countAssignee = count($request->assignee);
+      } else {
+        $assignees = "";
+        $countAssignee = 0;
+      }
     }
 
     // Check Total Time Calculation...
-    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($request->start_task))); 
+    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($request->start_task)));
     $dateTimeObject2 = date_create(date('Y-m-d H:i:s', strtotime($request->dedline)));
     $interval = date_diff($dateTimeObject1, $dateTimeObject2);
     $min = $interval->days * 24 * 60;
     $min += $interval->h * 60;
     $min += $interval->i;
-    
-    
+
+
     $lotalDays = $interval->days;
-    $totaltimededuct=0;
-    if($lotalDays >= 1){
-        $totaltimededuct = (900 * $lotalDays);
+    $totaltimededuct = 0;
+    if ($lotalDays >= 1) {
+      $totaltimededuct = (900 * $lotalDays);
     }
-    $finalminustes =  ($min-$totaltimededuct);
-    
-    
-    
+    $finalminustes =  ($min - $totaltimededuct);
+
+
+
 
     $lead = new Lead;
     $lead->name = $request->name;
@@ -81,16 +80,16 @@ class LeadController extends Controller{
     $lead->is_deleted = '0';
     $lead->save();
     $result = "Data Store Successfully!!!";
-  
-    return response()->json($result);
 
+    return response()->json($result);
   }
 
-  public function timer_calculation($id, $lead){
+  public function timer_calculation($id, $lead)
+  {
 
     $leadData = DB::table('tbl_lead')
-            ->WHERE('id', $lead)
-            ->first();
+      ->WHERE('id', $lead)
+      ->first();
 
     $time_status = $leadData->time_status;
     $last_time_update = $leadData->last_time_update;
@@ -98,18 +97,18 @@ class LeadController extends Controller{
     $curDateTime = date('Y-m-d H:i:s');
 
     // Check Total Time Calculation...
-    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($last_time_update))); 
+    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($last_time_update)));
     $dateTimeObject2 = date_create(date('Y-m-d H:i:s', strtotime($curDateTime)));
     $interval = date_diff($dateTimeObject1, $dateTimeObject2);
     $min = $interval->days * 24 * 60;
     $min += $interval->h * 60;
     $min += $interval->i;
-    
+
     $new_total_working_time = ($min + $total_working_time);
-    
+
     $leadUpd = new Lead;
     $leadUpd = Lead::find($lead);
-    if($time_status == 1){
+    if ($time_status == 1) {
       $leadUpd->total_working_time = $new_total_working_time;
       $leadUpd->time_status = 0;
     } else {
@@ -118,7 +117,7 @@ class LeadController extends Controller{
     $leadUpd->last_time_update = date('Y-m-d H:i:s');
     $leadUpd->save();
 
-    if($time_status == 1){
+    if ($time_status == 1) {
       $time_status = 0;
       $min = $min;
     } else {
@@ -128,29 +127,29 @@ class LeadController extends Controller{
 
     // Check Lead Assign in follow Time
     $leadDataFollow = DB::table('tbl_lead_follow_timer')
-            ->WHERE('lead_id', $lead)
-            ->WHERE('user_id', $id)
-            ->orderBy('id', 'DESC')
-            ->first();
-    if($leadDataFollow == null){
+      ->WHERE('lead_id', $lead)
+      ->WHERE('user_id', $id)
+      ->orderBy('id', 'DESC')
+      ->first();
+    if ($leadDataFollow == null) {
       // Insert
       $affectedRows = DB::table('tbl_lead_follow_timer')
         ->insert([
-            'user_id' => $id,
-            'lead_id' => $lead,
-            'updatetime' => date('Y-m-d H:i:s'),
-            'status' => $time_status,
-            'working_time' => $min,
-            'total_working_time' => $new_total_working_time,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+          'user_id' => $id,
+          'lead_id' => $lead,
+          'updatetime' => date('Y-m-d H:i:s'),
+          'status' => $time_status,
+          'working_time' => $min,
+          'total_working_time' => $new_total_working_time,
+          'created_at' => date('Y-m-d H:i:s'),
+          'updated_at' => date('Y-m-d H:i:s')
         ]);
     } else {
-      if($leadDataFollow->updatetimes == null){
+      if ($leadDataFollow->updatetimes == null) {
         // Update
         $affectedRows = DB::table('tbl_lead_follow_timer')
-        ->WHERE('id', $leadDataFollow->id)
-        ->update([
+          ->WHERE('id', $leadDataFollow->id)
+          ->update([
             'user_id' => $id,
             'lead_id' => $lead,
             'updatetimes' => date('Y-m-d H:i:s'),
@@ -159,11 +158,11 @@ class LeadController extends Controller{
             'total_working_time' => $new_total_working_time,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
-        ]);
+          ]);
       } else {
         // Insert
         $affectedRows = DB::table('tbl_lead_follow_timer')
-        ->insert([
+          ->insert([
             'user_id' => $id,
             'lead_id' => $lead,
             'updatetime' => date('Y-m-d H:i:s'),
@@ -172,66 +171,66 @@ class LeadController extends Controller{
             'total_working_time' => $new_total_working_time,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
-        ]);
+          ]);
       }
     }
 
 
-    
 
-  
+
+
     $data = "Data Update Successfully!!!";
-    return response()->json($data); 
-
+    return response()->json($data);
   }
 
-  public function lead_list($id, Request $request){
-    
+  public function lead_list($id, Request $request)
+  {
+
     $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
+      ->WHERE('id', $id)
+      ->first();
     $user_type = $user->user_type;
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
 
     $keywords = $request->get('keywords');
-    
+
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
       ->WHERE('tbl_lead.is_deleted', '0');
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
 
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-      
-    if(!empty($keywords)){
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.updated_at', 'DESC')->get();
 
 
@@ -239,660 +238,17 @@ class LeadController extends Controller{
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0');
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
-
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      }
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-  
-  
-  
-  public function leads_project($id, Request $request){
-
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
     }
 
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id);
-      
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.updated_at', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id);
-    
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-
-  public function leads_users_list($id, Request $request){
-
-   
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0');
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0');
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-     
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-  
-  public function leads_projects_list($id, Request $request){
-
-  
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id);
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id);
-     
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-  
-  
-  public function leads_category_list($id, Request $request){
-
-   
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.category', $id);
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.category', $id);
-     
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-  
-  public function leads_status_list($id, Request $request){
-
-  
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.status', $id);
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.status', $id);
-     
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-  
-  
-  public function leads_users_list_project($id, $sess_id, Request $request){
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-
-    $keywords = $request->get('keywords');
-    
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name',
-        'tbl_users.name as user_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $sess_id);
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $sess_id);
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-     
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-
-  }
-
-
-  public function leads_todo($id, Request $request){
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-    $keywords = $request->get('keywords');
-
-    $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-    
-
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.status', '!=', '3');
-
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
-
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-      
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.status', '!=', '3');
-      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
-
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-    
-
-  }
-  
-  
-  public function leads_todo_project($id, Request $request){
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-    $keywords = $request->get('keywords');
-
- 
-    
-
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id)
-      ->WHERE('tbl_lead.status', '!=', '3');
-
-      
-
-     
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      ->WHERE('tbl_lead.project', $id)
-      ->WHERE('tbl_lead.status', '!=', '3');
-      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-
-    
-    if(!empty($keywords)){
-      $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    $leads_count = $leads_count->count();
-
-    $data = array(
-      "data" => $leads,
-      "total" => $leads_count,
-      "per_page" => 12,
-      "page" => $page,
-      "offset" => $offset
-    );
-    
-    return response()->json($data); 
-    
-
-  }
-  
-  
-
-  public function leads_group($id, Request $request){
-
-    $page = $request->get('page');
-    if($page == 1){
-      $offset = 0;
-    } else {
-      $offset = (($page-1) * 12);
-    }
-    $keywords = $request->get('keywords');
-
-    $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-    
-
-    $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
-      ->skip($offset)
-      ->take(12)
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.tot_assignee', '>', '1'); 
-     
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
-
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
-      $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-      });
-    }
-    
-    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
-
-    $leads_count = Lead::select('tbl_lead.id')
-      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-      ->WHERE('tbl_lead.is_deleted', '0')
-      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.tot_assignee', '>', '1'); 
-
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
+    if ($user_type == 'admin') {
       $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-    if(!empty($keywords)){
+    }
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -904,35 +260,885 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
-  
-  
-  public function leads_group_project($id, Request $request){
+
+
+
+  public function leads_project($id, Request $request)
+  {
+
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
+
     $keywords = $request->get('keywords');
 
- 
-    
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id);
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.updated_at', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id);
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_users_list_old($id, Request $request)
+  {
+
+
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+
+    $keywords = $request->get('keywords');
 
     $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.project',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+public function leads_users_list($id, Request $request)
+{
+    $page = $request->get('page', 1);
+    $offset = ($page - 1) * 12;
+    $keywords = $request->get('keywords');
+
+    // ✅ BASE QUERY (common filters)
+    $baseQuery = Lead::from('tbl_lead')
+        ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+        ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+        ->leftJoin('tbl_users', 'tbl_users.id', '=', 'tbl_lead.assignee')
+        ->where('tbl_lead.is_deleted', '0')
+        ->whereRaw('FIND_IN_SET(?, tbl_lead.assignee)', [$id]);
+
+    // ✅ APPLY SEARCH FILTER (COMMON FOR ALL)
+    if (!empty($keywords)) {
+        $baseQuery->where(function ($query) use ($keywords) {
+            $query->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+                  ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+        });
+    }
+
+    // =========================
+    // ✅ DATA QUERY (PAGINATION)
+    // =========================
+    $leads = (clone $baseQuery)
+        ->select(
+            'tbl_lead.id',
+            'tbl_lead.project',
+            'tbl_lead.name',
+            'tbl_lead.dedline',
+            'tbl_lead.assignee',
+            'tbl_lead.remarks',
+            'tbl_source.name as source_name',
+            'tbl_category.name as category_id_name',
+            'tbl_users.name as user_name'
+        )
+        ->orderBy('tbl_lead.id', 'DESC')
+        ->skip($offset)
+        ->take(12)
+        ->get();
+
+    // =========================
+    // ✅ TOTAL COUNT
+    // =========================
+    $totalCount = (clone $baseQuery)->count();
+
+    // =========================
+    // ✅ UNIQUE PROJECT COUNT (FIXED)
+    // =========================
+    $uniqueProjectCount = (clone $baseQuery)
+        ->selectRaw('COUNT(DISTINCT tbl_lead.project) as total')
+        ->value('total');
+
+    // =========================
+    // ✅ RESPONSE
+    // =========================
+    return response()->json([
+        "data" => $leads,
+        "total" => $totalCount,
+        "unique_projects" => $uniqueProjectCount,
+        "per_page" => 12,
+        "page" => $page,
+        "offset" => $offset
+    ]);
+}
+  public function leads_projects_list($id, Request $request)
+  {
+
+
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+
+    $keywords = $request->get('keywords');
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id);
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id);
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_category_list($id, Request $request)
+  {
+
+
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+
+    $keywords = $request->get('keywords');
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.category', $id);
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.category', $id);
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_status_list_old($id, Request $request)
+  {
+
+
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+
+    $keywords = $request->get('keywords');
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.status', $id);
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.status', $id);
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+  public function leads_status_list($id = null, Request $request)
+  {
+    $page = $request->get('page', 1);
+    $offset = ($page - 1) * 12;
+
+    $keywords = $request->get('keywords');
+
+    $query = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->leftJoin('tbl_users', 'tbl_users.id', '=', 'tbl_lead.assignee')
+      ->where('tbl_lead.is_deleted', 0);
+
+    // ✅ Apply status filter only if $id exists
+    if (!empty($id)) {
+      $query->where('tbl_lead.status', $id);
+    }
+
+    // ✅ Search filter
+    if (!empty($keywords)) {
+      $query->where(function ($q) use ($keywords) {
+        $q->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    // ✅ Clone query for count
+    $total = (clone $query)->count();
+
+    // ✅ Pagination
+    $leads = $query->orderBy('tbl_lead.id', 'DESC')
+      ->skip($offset)
+      ->take(12)
+      ->get();
+
+    return response()->json([
+      "data" => $leads,
+      "total" => $total,
+      "per_page" => 12,
+      "page" => (int)$page,
+      "offset" => $offset
+    ]);
+  }
+
+  public function leads_users_list_project($id, $sess_id, Request $request)
+  {
+   
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+
+    $keywords = $request->get('keywords');
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      'tbl_users.name as user_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assignee')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $sess_id);
+    $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $sess_id);
+    $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+  public function leads_todo($id, Request $request)
+  {
+    $page = $request->get('page', 1);
+    $offset = ($page == 1) ? 0 : (($page - 1) * 12);
+    $keywords = $request->get('keywords');
+
+    // Get user
+    $user = DB::table('tbl_users')->where('id', $id)->first();
+    $user_type = $user->user_type;
+
+    // ================= MAIN QUERY =================
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      DB::raw('GROUP_CONCAT(tbl_users.name) as assignee')
+    )
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->leftJoin('tbl_users', function ($join) {
+        $join->whereRaw('FIND_IN_SET(tbl_users.id, tbl_lead.assignee)');
+      })
+      ->where('tbl_lead.is_deleted', '0')
+      ->where('tbl_lead.status', '!=', '3');
+
+    // Role-based filter
+    if ($user_type == 'agent') {
+      $leads->whereRaw('FIND_IN_SET("' . $id . '", tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads->where('tbl_lead.added_by', $id);
+    }
+
+    // Search
+    if (!empty($keywords)) {
+      $leads->where(function ($query) use ($keywords) {
+        $query->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads
+      ->groupBy(
         'tbl_lead.id',
         'tbl_lead.name',
         'tbl_lead.dedline',
-        'tbl_lead.assignee',
         'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
+        'tbl_source.name',
+        'tbl_category.name'
       )
+      ->orderBy('tbl_lead.id', 'DESC')
+      ->skip($offset)
+      ->take(12)
+      ->get();
+
+    // ================= COUNT QUERY =================
+    $leads_count = Lead::select('tbl_lead.id')
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->where('tbl_lead.is_deleted', '0')
+      ->where('tbl_lead.status', '!=', '3');
+
+    if ($user_type == 'agent') {
+      $leads_count->whereRaw('FIND_IN_SET("' . $id . '", tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count->where('tbl_lead.added_by', $id);
+    }
+
+    if (!empty($keywords)) {
+      $leads_count->where(function ($query) use ($keywords) {
+        $query->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads_count = $leads_count->count();
+
+    // ================= RESPONSE =================
+    return response()->json([
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    ]);
+  }
+
+  public function leads_todo_old($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.status', '!=', '3');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_todo_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.status', '!=', '3');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+
+  public function leads_group($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.tot_assignee', '>', '1');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.tot_assignee', '>', '1');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_group_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
@@ -940,16 +1146,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.project', $id)
-      ->WHERE('tbl_lead.tot_assignee', '>', '1'); 
-     
-     
-    if(!empty($keywords)){
+      ->WHERE('tbl_lead.tot_assignee', '>', '1');
+
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -958,13 +1164,13 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.project', $id)
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.tot_assignee', '>', '1'); 
+      ->WHERE('tbl_lead.tot_assignee', '>', '1');
 
-   
-    if(!empty($keywords)){
+
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -976,59 +1182,58 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
 
-  public function leads_pending($id, Request $request){
+  public function leads_pending($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
+      ->WHERE('id', $id)
+      ->first();
     $user_type = $user->user_type;
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.status', '2'); 
+      ->WHERE('tbl_lead.status', '2');
 
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
 
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1037,18 +1242,18 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '2');
-      
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
 
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1060,32 +1265,31 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
-  
-  public function leads_pending_project($id, Request $request){
+
+  public function leads_pending_project($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
@@ -1093,16 +1297,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '2')
-      ->WHERE('tbl_lead.project', $id); 
+      ->WHERE('tbl_lead.project', $id);
 
-      
-    if(!empty($keywords)){
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1112,12 +1316,12 @@ class LeadController extends Controller{
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '2')
       ->WHERE('tbl_lead.project', $id);
-      
-     
-    if(!empty($keywords)){
+
+
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1129,59 +1333,135 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
 
-  public function leads_inprogress($id, Request $request){
+  public function leads_inprogress($id = null, Request $request)
+  {
+    $page = $request->get('page', 1);
+    $offset = ($page - 1) * 12;
+
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')->where('id', $id)->first();
+
+    if (!$user) {
+      return response()->json(['error' => 'User not found'], 404);
+    }
+
+    $user_type = $user->user_type;
+
+    $query = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      DB::raw('GROUP_CONCAT(tbl_users.name) as assignee')
+    )
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->leftJoin('tbl_users', function ($join) {
+        $join->whereRaw('FIND_IN_SET(tbl_users.id, tbl_lead.assignee)');
+      })
+      ->where('tbl_lead.is_deleted', 0)
+      ->where('tbl_lead.status', 1);
+
+    // ✅ Role filter
+    if ($user_type === 'agent') {
+      $query->whereRaw('FIND_IN_SET(?, tbl_lead.assignee)', [$id]);
+    }
+
+    if ($user_type === 'admin') {
+      $query->where('tbl_lead.added_by', $id);
+    }
+
+    // ✅ Search
+    if (!empty($keywords)) {
+      $query->where(function ($q) use ($keywords) {
+        $q->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    // ✅ Group by required
+    $query->groupBy(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name',
+      'tbl_category.name'
+    );
+
+    $total = (clone $query)->get()->count();
+
+    $leads = $query->orderBy('tbl_lead.id', 'DESC')
+      ->skip($offset)
+      ->take(12)
+      ->get();
+
+    return response()->json([
+      "data" => $leads,
+      "total" => $total,
+      "per_page" => 12,
+      "page" => (int)$page,
+      "offset" => $offset
+    ]);
+  }
+
+  public function leads_inprogress_old($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
+      ->WHERE('id', $id)
+      ->first();
     $user_type = $user->user_type;
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.status', '1'); 
-      
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
+      ->WHERE('tbl_lead.status', '1');
 
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1190,18 +1470,18 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '1');
-      
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
 
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1213,32 +1493,31 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
-  
-  public function leads_inprogress_project($id, Request $request){
+
+  public function leads_inprogress_project($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
@@ -1246,16 +1525,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '1')
-      ->WHERE('tbl_lead.project', $id); 
-      
-      
-    if(!empty($keywords)){
+      ->WHERE('tbl_lead.project', $id);
+
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1265,12 +1544,12 @@ class LeadController extends Controller{
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '1')
       ->WHERE('tbl_lead.project', $id);
-      
-     
-    if(!empty($keywords)){
+
+
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1282,60 +1561,150 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-    
 
+    return response()->json($data);
   }
 
 
-  public function leads_completed($id, Request $request){
+  public function leads_completed($id, Request $request)
+  {
+    $page = $request->get('page', 1);
+    $offset = ($page == 1) ? 0 : (($page - 1) * 12);
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')->where('id', $id)->first();
+    $user_type = $user->user_type;
+
+    // ================= MAIN QUERY =================
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name',
+      DB::raw('GROUP_CONCAT(tbl_users.name) as assignee')
+    )
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->leftJoin('tbl_users', function ($join) {
+        $join->whereRaw('FIND_IN_SET(tbl_users.id, tbl_lead.assignee)');
+      })
+      ->where('tbl_lead.is_deleted', '0')
+      ->where('tbl_lead.status', '3'); // completed
+
+    // Role filter
+    if ($user_type == 'agent') {
+      $leads->whereRaw('FIND_IN_SET("' . $id . '", tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads->where('tbl_lead.added_by', $id);
+    }
+
+    // Search
+    if (!empty($keywords)) {
+      $leads->where(function ($query) use ($keywords) {
+        $query->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads
+      ->groupBy(
+        'tbl_lead.id',
+        'tbl_lead.name',
+        'tbl_lead.dedline',
+        'tbl_lead.remarks',
+        'tbl_source.name',
+        'tbl_category.name'
+      )
+      ->orderBy('tbl_lead.id', 'DESC')
+      ->skip($offset)
+      ->take(12)
+      ->get();
+
+    // ================= COUNT =================
+    $leads_count = Lead::select('tbl_lead.id')
+      ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+      ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+      ->where('tbl_lead.is_deleted', '0')
+      ->where('tbl_lead.status', '3');
+
+    if ($user_type == 'agent') {
+      $leads_count->whereRaw('FIND_IN_SET("' . $id . '", tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count->where('tbl_lead.added_by', $id);
+    }
+
+    if (!empty($keywords)) {
+      $leads_count->where(function ($query) use ($keywords) {
+        $query->where('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWhere('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads_count = $leads_count->count();
+
+    return response()->json([
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    ]);
+  }
+
+  public function leads_completed_old($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
+      ->WHERE('id', $id)
+      ->first();
     $user_type = $user->user_type;
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.status', '3'); 
-    
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
+      ->WHERE('tbl_lead.status', '3');
 
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1344,18 +1713,18 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '3');
-      
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
 
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1367,31 +1736,31 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-  
+
+    return response()->json($data);
   }
-  
-  public function leads_completed_project($id, Request $request){
+
+  public function leads_completed_project($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
@@ -1399,16 +1768,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '3')
-      ->WHERE('tbl_lead.project', $id); 
-    
-      
-    if(!empty($keywords)){
+      ->WHERE('tbl_lead.project', $id);
+
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1418,12 +1787,12 @@ class LeadController extends Controller{
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '3')
       ->WHERE('tbl_lead.project', $id);
-      
-      
-    if(!empty($keywords)){
+
+
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1435,58 +1804,58 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-  
+
+    return response()->json($data);
   }
 
-  public function leads_due($id, Request $request){
+  public function leads_due($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
+      ->WHERE('id', $id)
+      ->first();
     $user_type = $user->user_type;
-    
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.status','!=', '3'); 
-     
-      if($user_type == 'agent'){
-        $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
+      ->WHERE('tbl_lead.status', '!=', '3');
 
-      if($user_type == 'admin'){
-        $leads = $leads->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1495,18 +1864,18 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '!=', '3');
-     
-      if($user_type == 'agent'){
-        $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-      } 
 
-      if($user_type == 'admin'){
-        $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-      } 
-    if(!empty($keywords)){
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1518,32 +1887,32 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-  
+
+    return response()->json($data);
   }
-  
-  public function leads_due_project($id, Request $request){
+
+  public function leads_due_project($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
-   
+
 
     $leads = Lead::select(
-        'tbl_lead.id',
-        'tbl_lead.name',
-        'tbl_lead.dedline',
-        'tbl_lead.assignee',
-        'tbl_lead.remarks',
-        'tbl_source.name as source_name',
-        'tbl_category.name as category_id_name'
-      )
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
@@ -1551,16 +1920,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.project', $id)
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-      ->WHERE('tbl_lead.status','!=', '3'); 
-     
-     
-    if(!empty($keywords)){
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1570,12 +1939,12 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.project', $id)
       //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
       ->WHERE('tbl_lead.status', '!=', '3');
-     
-      
-    if(!empty($keywords)){
+
+
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1587,51 +1956,51 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
-  
+
+    return response()->json($data);
   }
 
-  public function lead_list_assign(Request $request){
+  public function lead_list_assign(Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $leads = Lead::orderby('tbl_lead.id', 'DESC')
-                ->select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.email', 'tbl_lead.phone', 'tbl_users.name as assigned_to')
-                ->skip($offset)
-                ->take(12)
-                ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assign_to')
-                ->WHERE('tbl_lead.is_deleted', '0')
-                ->WHERE('tbl_lead.assign_to', '>', '0')
-                ->WHERE('tbl_lead.type', 'Student');
-    if(!empty($keywords)){
+      ->select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.email', 'tbl_lead.phone', 'tbl_users.name as assigned_to')
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assign_to')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.assign_to', '>', '0')
+      ->WHERE('tbl_lead.type', 'Student');
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-        $query->orWhere('tbl_lead.name', 'like', '%'.$keywords.'%')
-              ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-              ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-              ->orWHERE('tbl_users.name', 'like', '%'.$keywords.'%');
-        });
+        $query->orWhere('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_users.name', 'like', '%' . $keywords . '%');
+      });
     }
     $leads = $leads->get();
 
     $leads_count = Lead::orderby('tbl_lead.id', 'DESC')
-        ->select('tbl_lead.id')
-        ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assign_to')
-        ->WHERE('tbl_lead.is_deleted', '0')
-        ->WHERE('tbl_lead.assign_to', '>', '0')
-        ->WHERE('tbl_lead.type', 'Student');
-    if(!empty($keywords)){
+      ->select('tbl_lead.id')
+      ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead.assign_to')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.assign_to', '>', '0')
+      ->WHERE('tbl_lead.type', 'Student');
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-      $query->orWhere('tbl_lead.name', 'like', '%'.$keywords.'%')
-        ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-        ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-        ->orWHERE('tbl_users.name', 'like', '%'.$keywords.'%');
+        $query->orWhere('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_users.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1643,37 +2012,37 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
-  public function leads_to_assign(Request $request){
+  public function leads_to_assign(Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
 
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school','tbl_source.name as source_name')
+
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_source.name as source_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.assign_to', '0')
       ->WHERE('tbl_lead.type', 'Student');
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
 
@@ -1682,11 +2051,11 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.assign_to', '0')
       ->WHERE('tbl_lead.type', 'Student');
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1698,53 +2067,53 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
-  public function edit_lead($id){
+  public function edit_lead($id)
+  {
     $lead = Lead::where('id', $id)
-             ->first();
-    return response()->json($lead); 
+      ->first();
+    return response()->json($lead);
   }
 
-  public function update_lead($id, Request $request){
+  public function update_lead($id, Request $request)
+  {
     $request->validate([
-        'name' => 'required'
+      'name' => 'required'
     ]);
 
     // Assigneess --
     $ass_type = gettype($request->assignee);
-    if($ass_type == "string"){
-        $assignees = $request->assignee;
-        $ass_arr = explode (",", $assignees); 
-        $countAssignee = count($ass_arr);
-
+    if ($ass_type == "string") {
+      $assignees = $request->assignee;
+      $ass_arr = explode(",", $assignees);
+      $countAssignee = count($ass_arr);
     } else {
-        if(isset($request->assignee)){
-            $assignees = implode(",",$request->assignee);
-            $countAssignee = count($request->assignee);
-        } else {
-            $assignees = "";
-            $countAssignee = 0;
-        }
+      if (isset($request->assignee)) {
+        $assignees = implode(",", $request->assignee);
+        $countAssignee = count($request->assignee);
+      } else {
+        $assignees = "";
+        $countAssignee = 0;
+      }
     }
 
     // Check Total Time Calculation...
-    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($request->start_task))); 
+    $dateTimeObject1 = date_create(date('Y-m-d H:i:s', strtotime($request->start_task)));
     $dateTimeObject2 = date_create(date('Y-m-d H:i:s', strtotime($request->dedline)));
     $interval = date_diff($dateTimeObject1, $dateTimeObject2);
     $min = $interval->days * 24 * 60;
     $min += $interval->h * 60;
     $min += $interval->i;
-    
+
     $lotalDays = $interval->days;
-    $totaltimededuct=0;
-    if($lotalDays >= 1){
-        $totaltimededuct = (900 * $lotalDays);
+    $totaltimededuct = 0;
+    if ($lotalDays >= 1) {
+      $totaltimededuct = (900 * $lotalDays);
     }
-    $finalminustes =  ($min-$totaltimededuct);
+    $finalminustes =  ($min - $totaltimededuct);
 
     $lead = new Lead;
     $lead = Lead::find($id);
@@ -1762,11 +2131,12 @@ class LeadController extends Controller{
     $lead->total_time_assign = $finalminustes;
     $lead->save();
     $data = "Data Update Successfully!!!";
-    return response()->json($data); 
+    return response()->json($data);
   }
 
 
-  public function update_lead_followup($id, $user_id, Request $request){
+  public function update_lead_followup($id, $user_id, Request $request)
+  {
 
     // == save in database
     $lead = new Lead;
@@ -1778,83 +2148,85 @@ class LeadController extends Controller{
 
     // ====
     $affectedRows = DB::table('tbl_lead_follow')
-    ->insert([
+      ->insert([
         'lead_id' => $id,
         'remarks' => $request->newremarks,
         'category' => $request->category,
         'status' => $request->status,
         'created_at' => date('Y-m-d H:i:s'),
         'created_by' => $user_id
-    ]);
+      ]);
 
 
     $data = "Followup Update Successfully!!!";
-    return response()->json($data); 
+    return response()->json($data);
   }
 
   public function leadofy_mail_api($api_key, $subject, $emails, $type, $template, $url, $sender_name, $sender_email)
-{
+  {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, 'http://bulkmail.smsby2.in/api.html');
     curl_setopt($ch, CURLOPT_HEADER, FALSE);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
     $payload = array(
-        'api_key' => $api_key,
-        'subject' => $subject,
-        'sender_name' => $sender_name,
-        'sender_email' => $sender_email,
-        'emails' => $emails,
-        'type' => $type,
-        'template' => $template,
-        'url' => $url
+      'api_key' => $api_key,
+      'subject' => $subject,
+      'sender_name' => $sender_name,
+      'sender_email' => $sender_email,
+      'emails' => $emails,
+      'type' => $type,
+      'template' => $template,
+      'url' => $url
     );
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
     $response = curl_exec($ch);
     curl_close($ch);
-}
+  }
 
-  public function sendLeadToOEL($data){
+  public function sendLeadToOEL($data)
+  {
 
-      $dataSend = [
-        'source' => $data['source'],
-        'name' => $data['name'],
-        'email' => $data['email'],
-        'phone' => $data['phone'],
-        'father_name' => $data['father_name'],
-        'subjects' => $data['subjects'],
-        'stream' => $data['stream'],
-        'country' => $data['country'],
-        'state' => $data['state'],
-        'pincode' => $data['pincode'],
-        'school' => $data['school']
-      ];
-      $response = Http::post('https://www.overseaseducationlane.com/api/save_lead_from_mycrmdesk', $dataSend);
-    
-      echo response($response);
-  
+    $dataSend = [
+      'source' => $data['source'],
+      'name' => $data['name'],
+      'email' => $data['email'],
+      'phone' => $data['phone'],
+      'father_name' => $data['father_name'],
+      'subjects' => $data['subjects'],
+      'stream' => $data['stream'],
+      'country' => $data['country'],
+      'state' => $data['state'],
+      'pincode' => $data['pincode'],
+      'school' => $data['school']
+    ];
+    $response = Http::post('https://www.overseaseducationlane.com/api/save_lead_from_mycrmdesk', $dataSend);
+
+    echo response($response);
   }
 
 
-  
 
-  public function lead_delete($id){
+
+  public function lead_delete($id)
+  {
 
     $lead = Lead::find($id);
     $lead->is_deleted = 1;
     $lead->save();
 
     $data = "Data Deleted";
-    return response()->json($data); 
+    return response()->json($data);
   }
 
 
   // Agent Lead Here===
-  public function add_lead_agent($id, Request $request){
+  public function add_lead_agent($id, Request $request)
+  {
 
     $request->validate([
-        'name' => 'required'
+      'name' => 'required'
     ]);
 
     $lead = new Lead;
@@ -1882,21 +2254,21 @@ class LeadController extends Controller{
     $lead->save();
     $result = "Data Store Successfully!!!";
     return response()->json($result);
-
   }
 
-  public function lead_list_agent($id, Request $request){
+  public function lead_list_agent($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
 
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
+
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
@@ -1904,15 +2276,15 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', 'Student')
       ->WHERE('tbl_lead.assign_to', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -1921,12 +2293,12 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', 'Student')
       ->WHERE('tbl_lead.assign_to', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -1938,16 +2310,16 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
   // Department Lead Here===
-  public function add_lead_department($id, Request $request){
+  public function add_lead_department($id, Request $request)
+  {
 
     $request->validate([
-        'name' => 'required'
+      'name' => 'required'
     ]);
 
     $lead = new Lead;
@@ -1976,21 +2348,21 @@ class LeadController extends Controller{
     $lead->save();
     $result = "Data Store Successfully!!!";
     return response()->json($result);
-
   }
 
-  public function lead_list_department($id, Request $request){
-    
+  public function lead_list_department($id, Request $request)
+  {
+
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
-    
 
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.school_name','tbl_lead.designation','tbl_lead.standard','tbl_lead.address','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school','tbl_source.name as source_name','tbl_category.name as category_id_name')
+
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.school_name', 'tbl_lead.designation', 'tbl_lead.standard', 'tbl_lead.address', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
@@ -1998,16 +2370,16 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('department', $id)
       ->WHERE('tbl_lead.type', 'Student');
-      
-    if(!empty($keywords)){
+
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
 
@@ -2017,12 +2389,12 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('department', $id)
       ->WHERE('tbl_lead.type', 'Student');
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -2034,26 +2406,26 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
 
-  public function update_lead_assign($id, Request $request){
+  public function update_lead_assign($id, Request $request)
+  {
 
-    if(!empty($request->assign_to) && !empty($request->no_leads)){
+    if (!empty($request->assign_to) && !empty($request->no_leads)) {
 
       $category = $request->category;
 
-      if(!empty($category)){
+      if (!empty($category)) {
         $affectedRows = DB::table('tbl_lead')
           ->take($request->no_leads)
           ->orderby('id', 'ASC')
           ->WHERE('category', $category)
           ->WHERE('assign_to', '0')
           ->update([
-              'assign_to' => $request->assign_to
+            'assign_to' => $request->assign_to
           ]);
       } else {
         $affectedRows = DB::table('tbl_lead')
@@ -2061,26 +2433,27 @@ class LeadController extends Controller{
           ->orderby('id', 'ASC')
           ->WHERE('assign_to', '0')
           ->update([
-              'assign_to' => $request->assign_to
+            'assign_to' => $request->assign_to
           ]);
       }
 
-      
+
       $data = "Lead Assigned Successfully!!!";
     } else {
       $data = "You have to select Assign To & No of Leads!!!";
     }
-    
 
-    
-    return response()->json($data); 
+
+
+    return response()->json($data);
   }
 
 
 
-  public function lead_count(Request $request){
-      
-     
+  public function lead_count(Request $request)
+  {
+
+
 
     $leads_count = Lead::WHERE('is_deleted', '0')->count();
 
@@ -2094,29 +2467,29 @@ class LeadController extends Controller{
       "leads_count_assign" => $leads_count_assign,
       "leads_count_assign_non" => $leads_count_assign_non
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
-  public function agent_lead_count($id, Request $request){
+  public function agent_lead_count($id, Request $request)
+  {
 
     $leads_count_assign = Lead::latest()
-            ->WHERE('assign_to', $id)
-            ->WHERE('category', '=', null)
-            ->WHERE('is_deleted', '0');
+      ->WHERE('assign_to', $id)
+      ->WHERE('category', '=', null)
+      ->WHERE('is_deleted', '0');
     $leads_count_assign = $leads_count_assign->count();
-    if($id == 0){
+    if ($id == 0) {
       $leads_count_assign = 0;
     } else {
       $leads_count_assign = $leads_count_assign;
     }
-    
-    return response()->json($leads_count_assign); 
 
+    return response()->json($leads_count_assign);
   }
 
-  public function upload_bulk_lead($id, Request $request){
+  public function upload_bulk_lead($id, Request $request)
+  {
 
     $file = $request->file;
 
@@ -2134,42 +2507,42 @@ class LeadController extends Controller{
     $maxFileSize =  921474836480; //2097152;
 
     // Check file extension
-    if(in_array(strtolower($extension),$valid_extension)){
+    if (in_array(strtolower($extension), $valid_extension)) {
 
       // Check file size
-      if($fileSize <= $maxFileSize){
+      if ($fileSize <= $maxFileSize) {
 
         // File upload location
-        $imageName = time().'.'.$request->file->getClientOriginalExtension();
+        $imageName = time() . '.' . $request->file->getClientOriginalExtension();
         // Public Folder
         $request->file->move(public_path('images'), $imageName);
 
-       
+
         // Reading file
-        $filepath = public_path("images/".$imageName);
-        $file = fopen($filepath,"r");
+        $filepath = public_path("images/" . $imageName);
+        $file = fopen($filepath, "r");
 
         $importData_arr = array();
         $i = 0;
 
         while (($filedata = fgetcsv($file, 1000, ",")) !== FALSE) {
-           $num = count($filedata);
-           
-           // Skip first row (Remove below comment if you want to skip the first row)
-           if($i == 0){
-              $i++;
-              continue; 
-           }
-           for ($c=0; $c < $num; $c++) {
-              $importData_arr[$i][] = $filedata [$c];
-           }
-           $i++;
+          $num = count($filedata);
+
+          // Skip first row (Remove below comment if you want to skip the first row)
+          if ($i == 0) {
+            $i++;
+            continue;
+          }
+          for ($c = 0; $c < $num; $c++) {
+            $importData_arr[$i][] = $filedata[$c];
+          }
+          $i++;
         }
         fclose($file);
 
-        foreach($importData_arr as $importData){
+        foreach ($importData_arr as $importData) {
 
-          if(!empty($importData[3])){
+          if (!empty($importData[3])) {
 
             $lead_already = DB::table('tbl_lead')
               ->where('phone', $importData[3])
@@ -2179,7 +2552,7 @@ class LeadController extends Controller{
             $source = DB::table('tbl_source')
               ->where('name', $importData[0])
               ->first();
-            if($source == null){
+            if ($source == null) {
               $source = new Source;
               $source->name = $importData[0];
               $source->status = 'Active';
@@ -2195,7 +2568,7 @@ class LeadController extends Controller{
             $country = DB::table('tbl_country')
               ->where('name', $importData[9])
               ->first();
-            if($country == null){
+            if ($country == null) {
               $country = new Country;
               $country->name = $importData[9];
               $country->status = 'Active';
@@ -2213,7 +2586,7 @@ class LeadController extends Controller{
               ->where('name', $importData[10])
               ->where('country_id', $country_id)
               ->first();
-            if($state == null){
+            if ($state == null) {
               $state = new State;
               $state->name = $importData[10];
               $state->country_id = $country_id;
@@ -2226,27 +2599,27 @@ class LeadController extends Controller{
               $state_id = $state->id;
             }
 
-             // Get City Id
-             $city = DB::table('tbl_city')
-             ->where('name', $importData[11])
-             ->where('country_id', $country_id)
-             ->where('state_id', $state_id)
-             ->first();
-           if($city == null){
-             $city = new City;
-             $city->name = $importData[11];
-             $city->country_id = $country_id;
-             $city->state_id = $state_id;
-             $city->status = 'Active';
-             $city->is_deleted = '0';
-             $city->save();
+            // Get City Id
+            $city = DB::table('tbl_city')
+              ->where('name', $importData[11])
+              ->where('country_id', $country_id)
+              ->where('state_id', $state_id)
+              ->first();
+            if ($city == null) {
+              $city = new City;
+              $city->name = $importData[11];
+              $city->country_id = $country_id;
+              $city->state_id = $state_id;
+              $city->status = 'Active';
+              $city->is_deleted = '0';
+              $city->save();
 
-             $city_id = $city->id;
-           } else {
-             $city_id = $city->id;
-           }
+              $city_id = $city->id;
+            } else {
+              $city_id = $city->id;
+            }
 
-            if($lead_already == NULL){
+            if ($lead_already == NULL) {
               $lead = new Lead;
               $lead->type = "Student";
               $lead->source = $source_id;
@@ -2272,94 +2645,93 @@ class LeadController extends Controller{
         $data = "Import Successful.";
         // Unlink File ----
         unlink($filepath);
-      }else{
+      } else {
         $data = "File too large. File must be less than 2MB.";
       }
-    }else{
+    } else {
       $data = "Invalid File Extension.";
     }
     return response()->json($data);
-
   }
 
 
-  public function lead_assign_agent($id, Request $request){
+  public function lead_assign_agent($id, Request $request)
+  {
     $myVals = $request->get('myVals');
-    if(!empty($myVals)){
-      $myVals = explode(",",$myVals);
-      foreach($myVals as $ab){
+    if (!empty($myVals)) {
+      $myVals = explode(",", $myVals);
+      foreach ($myVals as $ab) {
         $leads = DB::table('tbl_lead')
           ->where('id', $ab)
           ->update([
-              'assign_to' => $request->agent
-            ]);
+            'assign_to' => $request->agent
+          ]);
       }
     } else {
       $leads = DB::table('tbl_lead')
         ->where('assign_to', '0');
-        if(!empty($request->source)){
-          $leads = $leads->WHERE('source', $request->source);
-        }
-        if(!empty($request->country)){
-          $leads = $leads->WHERE('country', $request->country);
-        }
-        if(!empty($request->state)){
-          $leads = $leads->WHERE('state', $request->state);
-        }
-        if(!empty($request->city)){
-          $leads = $leads->WHERE('city', $request->city);
-        }
-        if(!empty($request->pincode)){
-          $leads = $leads->WHERE('pincode', $request->pincode);
-        }
-        $leads = $leads->update([
-          'assign_to' => $request->agent
-        ]);
+      if (!empty($request->source)) {
+        $leads = $leads->WHERE('source', $request->source);
+      }
+      if (!empty($request->country)) {
+        $leads = $leads->WHERE('country', $request->country);
+      }
+      if (!empty($request->state)) {
+        $leads = $leads->WHERE('state', $request->state);
+      }
+      if (!empty($request->city)) {
+        $leads = $leads->WHERE('city', $request->city);
+      }
+      if (!empty($request->pincode)) {
+        $leads = $leads->WHERE('pincode', $request->pincode);
+      }
+      $leads = $leads->update([
+        'assign_to' => $request->agent
+      ]);
     }
-  
-    
+
+
 
     $data = "Lead Assign Update Successfully!!!";
     return response()->json($data);
-    
-    
   }
 
 
-  public function lead_list_school(Request $request){
+  public function lead_list_school(Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
     $type = $request->get('type');
-    if($type == 1){
+    if ($type == 1) {
       $type = "School";
     } else {
       $type = "Coaching Center";
     }
-    
+
     print_r($type);
     die;
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school','tbl_lead.school_name','tbl_lead.type', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_lead.school_name', 'tbl_lead.type', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -2367,12 +2739,12 @@ class LeadController extends Controller{
       ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -2384,31 +2756,31 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
-  public function lead_list_department_school($id, Request $request){
-      
+  public function lead_list_department_school($id, Request $request)
+  {
+
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
 
     $type = $request->get('type');
-    if($type == 1){
+    if ($type == 1) {
       $type = "School";
     } else {
       $type = "Coaching Center";
     }
-    
 
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
+
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
@@ -2416,15 +2788,15 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type)
       ->WHERE('tbl_lead.department', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -2433,12 +2805,12 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type)
       ->WHERE('tbl_lead.department', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -2450,30 +2822,30 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
 
-  public function lead_list_agent_school($id, Request $request){
+  public function lead_list_agent_school($id, Request $request)
+  {
 
     $page = $request->get('page');
-    if($page == 1){
+    if ($page == 1) {
       $offset = 0;
     } else {
-      $offset = (($page-1) * 12);
+      $offset = (($page - 1) * 12);
     }
     $keywords = $request->get('keywords');
     $type = $request->get('type');
-    if($type == 1){
+    if ($type == 1) {
       $type = "School";
     } else {
       $type = "Coaching Center";
     }
-    
 
-    $leads = Lead::select('tbl_lead.id','tbl_lead.name','tbl_lead.phone','tbl_lead.email','tbl_lead.father_name','tbl_lead.category_name','tbl_lead.subjects','tbl_lead.stream','tbl_lead.pincode','tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
+
+    $leads = Lead::select('tbl_lead.id', 'tbl_lead.name', 'tbl_lead.phone', 'tbl_lead.email', 'tbl_lead.father_name', 'tbl_lead.category_name', 'tbl_lead.subjects', 'tbl_lead.stream', 'tbl_lead.pincode', 'tbl_lead.school', 'tbl_lead.contact_person', 'tbl_source.name as source_name', 'tbl_category.name as category_id_name')
       ->skip($offset)
       ->take(12)
       ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.source')
@@ -2481,15 +2853,15 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type)
       ->WHERE('tbl_lead.assign_to', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
-    
+
     $leads = $leads->orderby('tbl_lead.id', 'DESC')->get();
 
     $leads_count = Lead::select('tbl_lead.id')
@@ -2498,12 +2870,12 @@ class LeadController extends Controller{
       ->WHERE('tbl_lead.is_deleted', '0')
       ->WHERE('tbl_lead.type', $type)
       ->WHERE('tbl_lead.assign_to', $id);
-    if(!empty($keywords)){
+    if (!empty($keywords)) {
       $leads_count = $leads_count->where(function ($query) use ($keywords) {
-          $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.email', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_lead.phone', 'like', '%'.$keywords.'%')
-            ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.email', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_lead.phone', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
       });
     }
     $leads_count = $leads_count->count();
@@ -2515,43 +2887,44 @@ class LeadController extends Controller{
       "page" => $page,
       "offset" => $offset
     );
-    
-    return response()->json($data); 
 
+    return response()->json($data);
   }
 
-  public function get_sel_assignee($id, Request $request){
+  public function get_sel_assignee($id, Request $request)
+  {
     $id = explode(",", $id);
     $all_subject = Login::whereIn('id', $id)->get();
     $data = array(
-        "data" => $all_subject
+      "data" => $all_subject
     );
-    
-    return response()->json($data); 
-}
 
-public function task_dashboard_history($id, $status, Request $request){
-
-  if($status == 'status1'){
-    $start_time = date('Y-m-d 09:30:00');
-    $end_time = date('Y-m-d 11:30:00');
-  } else if($status == 'status2'){
-    $start_time = date('Y-m-d 11:30:00');
-    $end_time = date('Y-m-d 13:00:00');
-  } else if($status == 'status3'){
-    $start_time = date('Y-m-d 14:00:00');
-    $end_time = date('Y-m-d 15:30:00');
-  } else if($status == 'status4'){
-    $start_time = date('Y-m-d 15:30:00');
-    $end_time = date('Y-m-d 17:00:00');
-  } else {
-    $start_time = date('Y-m-d 17:00:00');
-    $end_time = date('Y-m-d 18:30:00');
+    return response()->json($data);
   }
 
+  public function task_dashboard_history($id, $status, Request $request)
+  {
 
-  $users = DB::select("SELECT c.name, c.total_time_assign FROM `tbl_lead_follow_timer` a, `tbl_users` b, `tbl_lead` c WHERE a.user_id = '".$id."' AND b.id = a.user_id AND c.id = a.lead_id AND ( a.`updatetime` BETWEEN '".$start_time."' AND '".$end_time."' OR a.`updatetimes` BETWEEN '".$start_time."' AND '".$end_time."') LIMIT 0,1");
-  /*
+    if ($status == 'status1') {
+      $start_time = date('Y-m-d 09:30:00');
+      $end_time = date('Y-m-d 11:30:00');
+    } else if ($status == 'status2') {
+      $start_time = date('Y-m-d 11:30:00');
+      $end_time = date('Y-m-d 13:00:00');
+    } else if ($status == 'status3') {
+      $start_time = date('Y-m-d 14:00:00');
+      $end_time = date('Y-m-d 15:30:00');
+    } else if ($status == 'status4') {
+      $start_time = date('Y-m-d 15:30:00');
+      $end_time = date('Y-m-d 17:00:00');
+    } else {
+      $start_time = date('Y-m-d 17:00:00');
+      $end_time = date('Y-m-d 18:30:00');
+    }
+
+
+    $users = DB::select("SELECT c.name, c.total_time_assign FROM `tbl_lead_follow_timer` a, `tbl_users` b, `tbl_lead` c WHERE a.user_id = '" . $id . "' AND b.id = a.user_id AND c.id = a.lead_id AND ( a.`updatetime` BETWEEN '" . $start_time . "' AND '" . $end_time . "' OR a.`updatetimes` BETWEEN '" . $start_time . "' AND '" . $end_time . "') LIMIT 0,1");
+    /*
   $users = DB::table('tbl_lead_follow_timer')
             ->select(
               'tbl_lead_follow_timer.id',
@@ -2571,17 +2944,18 @@ public function task_dashboard_history($id, $status, Request $request){
             ->get();
     */
 
-      $data = array(
-          "data" => $users
-      );
-      
-      return response()->json($data); 
-}
+    $data = array(
+      "data" => $users
+    );
+
+    return response()->json($data);
+  }
 
 
-public function leads_log($id, Request $request){
+  public function leads_log($id, Request $request)
+  {
 
-  $leads = DB::table('tbl_lead_follow')
+    $leads = DB::table('tbl_lead_follow')
       ->select('tbl_lead_follow.remarks', 'tbl_lead_follow.created_at', 'tbl_users.name', 'tbl_source.name as status_name')
       ->WHERE('tbl_lead_follow.lead_id', $id)
       ->LeftJoin('tbl_users', 'tbl_users.id', 'tbl_lead_follow.created_by')
@@ -2589,1555 +2963,1554 @@ public function leads_log($id, Request $request){
       ->orderby('tbl_lead_follow.id', 'DESC')->get();
 
 
-  $data = array(
-    "data" => $leads
-  );
-  
-  return response()->json($data); 
-
-}
-
-// ====== Reports ----------
-
-public function leads_rep_deadline($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3'); 
-   
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3');
-   
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_owner($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->WHERE('tbl_lead.added_by', $id);
-    
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->WHERE('tbl_lead.added_by', $id);
-    
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_assignee($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)'); 
-   
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_one_day($id, Request $request){
-
-  $today_date = date('Y-m-d', strtotime('-1 days'));
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-    
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_del_two_day($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today_date = date('Y-m-d', strtotime('-2 days'));
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-   // ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-   
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_del_three_day($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today_date = date('Y-m-d', strtotime('-3 days'));
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-   
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-   
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_week($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $first_date = date('Y-m-d', strtotime('-1 days'));
-  $last_date = date('Y-m-d', strtotime('-7 days'));
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_month($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $first_date = date('Y-m-d', strtotime('-1 days'));
-  $last_date = date('Y-m-d', strtotime('-30 days'));
-
-  $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-    
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_today($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today = date('Y-m-d');
-
-  
-  $user = DB::table('tbl_users')
-  ->WHERE('id', $id)
-  ->first();
-  $user_type = $user->user_type;
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.updated_at', 'like', '%'.$today.'%');
-    
-    if($user_type == 'agent'){
-      $leads = $leads->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads = $leads->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.updated_at', 'like', '%'.$today.'%');
-   
-    if($user_type == 'agent'){
-      $leads_count = $leads_count->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    } 
-
-    if($user_type == 'admin'){
-      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
-    } 
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-
-// ====== Reports ----------
-
-public function leads_rep_deadline_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    ->WHERE('tbl_lead.project', $id)
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3'); 
-   
-    
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.status', '!=', '3');
-   
-   
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_owner_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
- 
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->WHERE('tbl_lead.added_by', $id);
-    
-    
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->WHERE('tbl_lead.added_by', $id);
-    
-    
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_assignee_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)'); 
-   
-   
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.is_deleted', '0');
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
-    
-    
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_one_day_project($id, Request $request){
-
-  $today_date = date('Y-m-d', strtotime('-1 days'));
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
- 
-    
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-   
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-   
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_del_two_day_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today_date = date('Y-m-d', strtotime('-2 days'));
-
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-   // ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-   
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-   
-   
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_del_three_day_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today_date = date('Y-m-d', strtotime('-3 days'));
-
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-    
-   
-    
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    ->WHERE('tbl_lead.project', $id)
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', 'like', '%'.$today_date.'%'); 
-   
-  
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_week_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $first_date = date('Y-m-d', strtotime('-1 days'));
-  $last_date = date('Y-m-d', strtotime('-7 days'));
-
-  
-
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-   
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    ->WHERE('tbl_lead.project', $id)
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-    
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-public function leads_rep_del_month_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $first_date = date('Y-m-d', strtotime('-1 days'));
-  $last_date = date('Y-m-d', strtotime('-30 days'));
-
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-   
-    
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.dedline', '<=', $first_date.' 23:59')
-    ->WHERE('tbl_lead.dedline', '>=', $last_date.' 00:00');
-    
-    
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-
-public function leads_rep_today_project($id, Request $request){
-
-  $page = $request->get('page');
-  if($page == 1){
-    $offset = 0;
-  } else {
-    $offset = (($page-1) * 12);
-  }
-  $keywords = $request->get('keywords');
-
-  $today = date('Y-m-d');
-
-  
-  
-  
-
-  $leads = Lead::select(
-      'tbl_lead.id',
-      'tbl_lead.name',
-      'tbl_lead.dedline',
-      'tbl_lead.assignee',
-      'tbl_lead.remarks',
-      'tbl_source.name as source_name',
-      'tbl_category.name as category_id_name'
-    )
-    ->skip($offset)
-    ->take(12)
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.updated_at', 'like', '%'.$today.'%');
-    
-   
-  if(!empty($keywords)){
-    $leads = $leads->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  
-  $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
-
-  $leads_count = Lead::select('tbl_lead.id')
-    ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
-    ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
-    ->WHERE('tbl_lead.is_deleted', '0')
-    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
-    ->WHERE('tbl_lead.status', '!=', '3')
-    ->WHERE('tbl_lead.project', $id)
-    ->WHERE('tbl_lead.updated_at', 'like', '%'.$today.'%');
-   
-   
-  if(!empty($keywords)){
-    $leads_count = $leads_count->where(function ($query) use ($keywords) {
-        $query->WHERE('tbl_lead.name', 'like', '%'.$keywords.'%')
-          ->orWHERE('tbl_category.name', 'like', '%'.$keywords.'%');
-    });
-  }
-  $leads_count = $leads_count->count();
-
-  $data = array(
-    "data" => $leads,
-    "total" => $leads_count,
-    "per_page" => 12,
-    "page" => $page,
-    "offset" => $offset
-  );
-  
-  return response()->json($data); 
-
-}
-
-//=== Report #END
-
-public function get_to_task_count($id, Request $request){
-    $sql = "SELECT count(a.id) as countID, b.userid, b.total_task FROM `tbl_lead` a, tbl_users b WHERE 1 AND FIND_IN_SET($id, assignee) GROUP BY a.project, b.userid, b.total_task";
-    $department=DB::select($sql);
-    return response()->json($department);
-
-}
-
-
-public function assignee_details($id, Request $request){
-  $sql = "SELECT id, name FROM `tbl_users` WHERE 1 AND id IN ($id)";
-  $assinee=DB::select($sql);
-  return response()->json($assinee);
-}
-
-
-public function get_user_tot_task($id, Request $request){
-    $sql = "SELECT count(id) as countID FROM `tbl_lead` WHERE 1 AND FIND_IN_SET($id, assignee)";
-    $department=DB::select($sql);
-    return response()->json($department);
-}
-
-public function get_user_tot_delay_task($id, Request $request){ 
-  $curDate = date('Y-m-d H:i:s');
-  $sql = "SELECT count(id) as countID FROM `tbl_lead` WHERE 1 AND FIND_IN_SET($id, assignee) AND dedline > '".$curDate."' AND status != '3'";
-  $department=DB::select($sql);
-  
-  return response()->json($department);
-}
-
-public function get_sel_assignee_by_skills($id, Request $request){
-    
- 
-    $id = str_replace(",","|",$id);
-    
-    
-    $sql = 'SELECT id, name FROM tbl_users WHERE user_type ="agent" and is_deleted = "0" and CONCAT(",", skills, ",") REGEXP ",('.$id.'),"';
-    
-    $department=DB::select($sql);
-   
-    
     $data = array(
-            "data" => $department
-        );
-  
-    return response()->json($data); 
-}
+      "data" => $leads
+    );
 
-public function get_sel_assignee_by_project($id, Request $request){
-    
-    $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $skills = $user->skills;
-    
-    if($skills == ""){
-        $department=[];
-    } else {
-        $skills = str_replace(",","|",$skills);
-        $sql = 'SELECT id, name FROM tbl_users WHERE user_type ="agent" and is_deleted = "0" and CONCAT(",", skills, ",") REGEXP ",('.$skills.'),"';
-        $department=DB::select($sql);
-    }
-   
-    
-    $data = array(
-            "data" => $department
-        );
-  
     return response()->json($data);
-    
-}
+  }
 
-public function get_sel_assignee_by_project_team_lead($id, Request $request){
-    
-    $user = DB::table('tbl_users')
-            ->WHERE('id', $id)
-            ->first();
-    $assignee = $user->assignee;
-    if($assignee != ""){
-        $sql = "SELECT id, name FROM `tbl_users` WHERE 1 AND id IN ($assignee)";
-        $assinee=DB::select($sql);
+  // ====== Reports ----------
+
+  public function leads_rep_deadline($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
     } else {
-        $assinee=[];
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_owner($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->WHERE('tbl_lead.added_by', $id);
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->WHERE('tbl_lead.added_by', $id);
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_assignee($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)'); 
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_one_day($id, Request $request)
+  {
+
+    $today_date = date('Y-m-d', strtotime('-1 days'));
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_del_two_day($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today_date = date('Y-m-d', strtotime('-2 days'));
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      // ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_del_three_day($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today_date = date('Y-m-d', strtotime('-3 days'));
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_week($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $first_date = date('Y-m-d', strtotime('-1 days'));
+    $last_date = date('Y-m-d', strtotime('-7 days'));
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_month($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $first_date = date('Y-m-d', strtotime('-1 days'));
+    $last_date = date('Y-m-d', strtotime('-30 days'));
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_today($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today = date('Y-m-d');
+
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $user_type = $user->user_type;
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.updated_at', 'like', '%' . $today . '%');
+
+    if ($user_type == 'agent') {
+      $leads = $leads->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads = $leads->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.updated_at', 'like', '%' . $today . '%');
+
+    if ($user_type == 'agent') {
+      $leads_count = $leads_count->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)');
+    }
+
+    if ($user_type == 'admin') {
+      $leads_count = $leads_count->WHERE('tbl_lead.added_by', $id);
+    }
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+
+  // ====== Reports ----------
+
+  public function leads_rep_deadline_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id)
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->whereRaw('FIND_IN_SET("' . $id . '",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.status', '!=', '3');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_owner_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->WHERE('tbl_lead.added_by', $id);
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->WHERE('tbl_lead.added_by', $id);
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_assignee_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)'); 
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.is_deleted', '0');
+    //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_one_day_project($id, Request $request)
+  {
+
+    $today_date = date('Y-m-d', strtotime('-1 days'));
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_del_two_day_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today_date = date('Y-m-d', strtotime('-2 days'));
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      // ->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_del_three_day_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today_date = date('Y-m-d', strtotime('-3 days'));
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id)
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', 'like', '%' . $today_date . '%');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_week_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $first_date = date('Y-m-d', strtotime('-1 days'));
+    $last_date = date('Y-m-d', strtotime('-7 days'));
+
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      ->WHERE('tbl_lead.project', $id)
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  public function leads_rep_del_month_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $first_date = date('Y-m-d', strtotime('-1 days'));
+    $last_date = date('Y-m-d', strtotime('-30 days'));
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.dedline', '<=', $first_date . ' 23:59')
+      ->WHERE('tbl_lead.dedline', '>=', $last_date . ' 00:00');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+
+  public function leads_rep_today_project($id, Request $request)
+  {
+
+    $page = $request->get('page');
+    if ($page == 1) {
+      $offset = 0;
+    } else {
+      $offset = (($page - 1) * 12);
+    }
+    $keywords = $request->get('keywords');
+
+    $today = date('Y-m-d');
+
+
+
+
+
+    $leads = Lead::select(
+      'tbl_lead.id',
+      'tbl_lead.name',
+      'tbl_lead.dedline',
+      'tbl_lead.assignee',
+      'tbl_lead.remarks',
+      'tbl_source.name as source_name',
+      'tbl_category.name as category_id_name'
+    )
+      ->skip($offset)
+      ->take(12)
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.updated_at', 'like', '%' . $today . '%');
+
+
+    if (!empty($keywords)) {
+      $leads = $leads->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+
+    $leads = $leads->orderby('tbl_lead.dedline', 'DESC')->get();
+
+    $leads_count = Lead::select('tbl_lead.id')
+      ->LeftJoin('tbl_source', 'tbl_source.id', 'tbl_lead.status')
+      ->LeftJoin('tbl_category', 'tbl_category.id', 'tbl_lead.category')
+      ->WHERE('tbl_lead.is_deleted', '0')
+      //->whereRaw('FIND_IN_SET("'.$id.'",tbl_lead.assignee)')
+      ->WHERE('tbl_lead.status', '!=', '3')
+      ->WHERE('tbl_lead.project', $id)
+      ->WHERE('tbl_lead.updated_at', 'like', '%' . $today . '%');
+
+
+    if (!empty($keywords)) {
+      $leads_count = $leads_count->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+      });
+    }
+    $leads_count = $leads_count->count();
+
+    $data = array(
+      "data" => $leads,
+      "total" => $leads_count,
+      "per_page" => 12,
+      "page" => $page,
+      "offset" => $offset
+    );
+
+    return response()->json($data);
+  }
+
+  //=== Report #END
+
+  public function get_to_task_count($id, Request $request)
+  {
+    $sql = "SELECT count(a.id) as countID, b.userid, b.total_task FROM `tbl_lead` a, tbl_users b WHERE 1 AND FIND_IN_SET($id, assignee) GROUP BY a.project, b.userid, b.total_task";
+    $department = DB::select($sql);
+    return response()->json($department);
+  }
+
+
+  public function assignee_details($id, Request $request)
+  {
+    $sql = "SELECT id, name FROM `tbl_users` WHERE 1 AND id IN ($id)";
+    $assinee = DB::select($sql);
+    return response()->json($assinee);
+  }
+
+
+  public function get_user_tot_task($id, Request $request)
+  {
+    $sql = "SELECT count(id) as countID FROM `tbl_lead` WHERE 1 AND FIND_IN_SET($id, assignee)";
+    $department = DB::select($sql);
+    return response()->json($department);
+  }
+
+  public function get_user_tot_delay_task($id, Request $request)
+  {
+    $curDate = date('Y-m-d H:i:s');
+    $sql = "SELECT count(id) as countID FROM `tbl_lead` WHERE 1 AND FIND_IN_SET($id, assignee) AND dedline > '" . $curDate . "' AND status != '3'";
+    $department = DB::select($sql);
+
+    return response()->json($department);
+  }
+
+  public function get_sel_assignee_by_skills($id, Request $request)
+  {
+
+
+    $id = str_replace(",", "|", $id);
+
+
+    $sql = 'SELECT id, name FROM tbl_users WHERE user_type ="agent" and is_deleted = "0" and CONCAT(",", skills, ",") REGEXP ",(' . $id . '),"';
+
+    $department = DB::select($sql);
+
+
+    $data = array(
+      "data" => $department
+    );
+
+    return response()->json($data);
+  }
+
+  public function get_sel_assignee_by_project($id, Request $request)
+  {
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $skills = $user->skills;
+
+    if ($skills == "") {
+      $department = [];
+    } else {
+      $skills = str_replace(",", "|", $skills);
+      $sql = 'SELECT id, name FROM tbl_users WHERE user_type ="agent" and is_deleted = "0" and CONCAT(",", skills, ",") REGEXP ",(' . $skills . '),"';
+      $department = DB::select($sql);
+    }
+
+
+    $data = array(
+      "data" => $department
+    );
+
+    return response()->json($data);
+  }
+
+  public function get_sel_assignee_by_project_team_lead($id, Request $request)
+  {
+
+    $user = DB::table('tbl_users')
+      ->WHERE('id', $id)
+      ->first();
+    $assignee = $user->assignee;
+    if ($assignee != "") {
+      $sql = "SELECT id, name FROM `tbl_users` WHERE 1 AND id IN ($assignee)";
+      $assinee = DB::select($sql);
+    } else {
+      $assinee = [];
     }
     return response()->json($assinee);
-    
-}
-  
-
-
-  
+  }
 }

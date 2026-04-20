@@ -21,12 +21,12 @@ Route::get('clear', function () {
 
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('report');
 });
 
 
 
-Route::get('/report', function () {
+Route::get('/backend/report', function () {
     return view('report');
 });
 

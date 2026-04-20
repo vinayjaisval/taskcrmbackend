@@ -159,7 +159,7 @@ $departments = $departments->orderBy('l1.id', 'DESC')->get();
       "offset" => $offset
     );
     
-    dd($data);
+   
     return response()->json($data); 
 
   }
@@ -971,14 +971,47 @@ $departments = $departments->orderBy('l1.id', 'DESC')->get();
     return response()->json($data); 
   }
 
-  public function all_department_count(Request $request){
+  public function all_department_count_old(Request $request){
 
-    $sql = "SELECT count(a.id) as countID, b.userid, b.total_task, a.project FROM `tbl_lead` a, tbl_users b WHERE 1 AND a.status = '3' AND a.project = b.id GROUP BY a.project, b.userid, b.total_task;";
+    $sql = "SELECT count(a.id) as countID, b.userid, b.total_task, a.project 
+    FROM `tbl_lead` a, tbl_users b 
+    WHERE 1 AND a.status = '3' AND a.project = b.id 
+    GROUP BY a.project, b.userid, b.total_task;";
     $department=DB::select($sql);
+
     return response()->json($department);
 
   }
 
+
+public function all_department_count(Request $request, $id)
+{
+    $query = DB::table('tbl_lead as a')
+        ->join('tbl_users as b', 'a.project', '=', 'b.id')
+        ->where('a.status', 3);
+
+    /**
+     * 🔥 Agar user ID 1 nahi hai to filter lagao
+     * ID = 1 → sab data (admin)
+     */
+    if ($id != 1) {
+        $query->where('b.lead_by', $id);
+    }
+
+    $department = $query->select(
+            DB::raw('COUNT(a.id) as countID'),
+            'b.userid',
+            'b.total_task',
+            'a.project'
+        )
+        ->groupBy('a.project', 'b.userid', 'b.total_task')
+        ->get();
+
+    return response()->json([
+        'status' => true,
+        'data' => $department
+    ]);
+}
 
 
   public function all_agent_list_data(Request $request){
@@ -1008,13 +1041,17 @@ $departments = $departments->orderBy('l1.id', 'DESC')->get();
   }
 
   public function all_agent_list_data_admin($id, Request $request){
+    
 
+  
     $agents = Login::select('id', 'name')
         ->WHERE('is_deleted', '0')
         ->WHERE('user_type', 'agent')
-        ->WHERE('lead_by', $id)
+        ->WHERE('leads_by', $id)
         ->orderby('id', 'DESC')
         ->get();
+        
+       
     return response()->json($agents); 
 
   }
@@ -1030,8 +1067,8 @@ $departments = $departments->orderBy('l1.id', 'DESC')->get();
         ->WHERE('lead_by', $get_lead_id)
         ->orderby('id', 'DESC')
         ->get();
-        
-    return response()->json($agents); 
+   
+      return response()->json($agents); 
 
   }
   
