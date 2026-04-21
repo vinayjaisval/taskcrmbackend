@@ -1014,47 +1014,44 @@ public function all_department_count(Request $request, $id)
 }
 
 
-  public function all_agent_list_data(Request $request){
-
-    $agents = Login::select('id', 'name')
-        ->WHERE('is_deleted', '0')
-        ->WHERE('user_type', 'agent')
-        ->orderby('name', 'ASC')
+public function all_agent_list_data(Request $request)
+{
+    $agents = Login::select(
+            'tbl_users.id',
+            'tbl_users.name',
+            DB::raw('COUNT(DISTINCT tbl_lead.project) as total_projects')
+        )
+        ->leftJoin('tbl_lead', function ($join) {
+            $join->whereRaw('FIND_IN_SET(tbl_users.id, tbl_lead.assignee)');
+        })
+        ->where('tbl_users.is_deleted', '0')
+        ->where('tbl_users.user_type', 'agent')
+        ->groupBy('tbl_users.id', 'tbl_users.name')
+        ->orderBy('tbl_users.name', 'ASC')
         ->get();
-        
-    // $count = Login::select('id', 'name')
-    //     ->WHERE('is_deleted', '0')
-    //     ->WHERE('user_type', 'agent')
-    //     ->orderby('name', 'ASC')
-    //     ->count();
-        
-    
-    // $data = array(
-    //   "msg"=>'status updated sucessfully!!!',
-    //   "status" =>200,
-    //   "data" =>  $chatsread
-    // //   "isRead" => $chatsread->is_read
-    // );
-   
-    return response()->json($agents); 
 
-  }
+    return response()->json($agents);
+}
 
-  public function all_agent_list_data_admin($id, Request $request){
-    
-
-  
-    $agents = Login::select('id', 'name')
-        ->WHERE('is_deleted', '0')
-        ->WHERE('user_type', 'agent')
-        ->WHERE('leads_by', $id)
-        ->orderby('id', 'DESC')
+public function all_agent_list_data_admin($id, Request $request)
+{
+    $agents = Login::select(
+            'tbl_users.id',
+            'tbl_users.name',
+            DB::raw('COUNT(DISTINCT tbl_lead.project) as total_projects')
+        )
+        ->leftJoin('tbl_lead', function ($join) {
+            $join->whereRaw('FIND_IN_SET(tbl_users.id, tbl_lead.assignee)');
+        })
+        ->where('tbl_users.is_deleted', '0')
+        ->where('tbl_users.user_type', 'agent')
+        ->where('tbl_users.lead_by', $id)
+        ->groupBy('tbl_users.id', 'tbl_users.name')
+        ->orderBy('tbl_users.id', 'DESC')
         ->get();
-        
-       
-    return response()->json($agents); 
 
-  }
+    return response()->json($agents);
+}
   
   public function all_agent_list_data_project($id, Request $request){
       
