@@ -24,6 +24,9 @@ Route::get('/', function () {
     return view('report');
 });
 
+Route::get('report', function () {
+    return view('report');
+});
 
 
 Route::get('/backend/report', function () {
