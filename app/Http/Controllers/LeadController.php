@@ -399,7 +399,7 @@ class LeadController extends Controller
     return response()->json($data);
   }
 
-public function leads_users_list($id, Request $request)
+public function leads_users_listold_new($id, Request $request)
 {
     $page = $request->get('page', 1);
     $offset = ($page - 1) * 12;
@@ -463,6 +463,129 @@ public function leads_users_list($id, Request $request)
         "per_page" => 12,
         "page" => $page,
         "offset" => $offset
+    ]);
+}
+
+public function leads_users_list($userId, Request $request)
+{
+    $page = $request->get('page', 1);
+    $limit = 12;
+    $offset = ($page - 1) * $limit;
+    $keywords = $request->get('keywords');
+
+    $baseQuery = Lead::from('tbl_lead')
+
+        ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+        ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+
+        // ✅ FIX 1: correct join (comma separated)
+        ->leftJoin('tbl_users', function ($join) {
+            $join->on(DB::raw("FIND_IN_SET(tbl_users.id, tbl_lead.assignee)"), '>', DB::raw('0'));
+        })
+
+        // ✅ FIX 2: lead user join (for name instead of id)
+        ->leftJoin('tbl_users as lead_user', 'lead_user.id', '=', 'tbl_users.lead_by')
+
+        ->where('tbl_lead.is_deleted', '0')
+
+        ->whereRaw('FIND_IN_SET(?, tbl_lead.assignee)', [$userId]);
+
+    // 🔍 SEARCH
+    if (!empty($keywords)) {
+        $baseQuery->where('tbl_lead.project', 'like', '%' . $keywords . '%');
+    }
+
+    // ✅ PROJECT-WISE DATA
+    $projects = (clone $baseQuery)
+        ->select(
+            'tbl_lead.project',
+
+            // ✅ TASK COUNT
+            DB::raw('COUNT(DISTINCT tbl_lead.id) as total_tasks'),
+
+            // ✅ TEAM LEAD NAME (FIXED)
+            DB::raw("
+                GROUP_CONCAT(DISTINCT lead_user.name)
+                as team_lead
+            "),
+
+            // ✅ UNIQUE TEAM MEMBERS (ONLY NAME)
+            DB::raw("
+                GROUP_CONCAT(DISTINCT tbl_users.name ORDER BY tbl_users.name SEPARATOR ', ')
+                as team_members
+            ")
+        )
+        ->groupBy('tbl_lead.project')
+        ->orderBy('tbl_lead.project', 'ASC')
+        ->skip($offset)
+        ->take($limit)
+        ->get();
+
+    // ✅ TOTAL PROJECT COUNT
+    $totalProjects = (clone $baseQuery)
+        ->select('tbl_lead.project')
+        ->groupBy('tbl_lead.project')
+        ->get()
+        ->count();
+
+    return response()->json([
+        "data" => $projects,
+        "total_projects" => $totalProjects,
+        "per_page" => $limit,
+        "page" => $page
+    ]);
+}
+
+
+public function project_tasks($projectId,$userId, Request $request)
+{
+
+    $projectName = $projectId; // project id
+
+    
+    $page = $request->get('page', 1);
+    $limit = 12;
+    $offset = ($page - 1) * $limit;
+
+    $query = Lead::from('tbl_lead')
+        ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
+        ->leftJoin('tbl_category', 'tbl_category.id', '=', 'tbl_lead.category')
+
+        ->where('tbl_lead.is_deleted', '0')
+
+        // ✅ FIX 1: user filter (assignee me check hoga)
+        ->whereRaw('FIND_IN_SET(?, tbl_lead.assignee)', [$userId])
+
+        ->select(
+            'tbl_lead.id',
+            'tbl_lead.name',
+            'tbl_lead.project',
+            'tbl_lead.dedline',
+            'tbl_lead.remarks',
+            'tbl_source.name as source_name',
+            'tbl_category.name as category_name'
+        );
+
+    // ✅ FIX 2: project filter (comma-separated handle)
+    if (!empty($projectName)) {
+        $query->whereRaw('FIND_IN_SET(?, tbl_lead.project)', [$projectName]);
+    }
+
+    // ✅ DATA
+    $tasks = (clone $query)
+        ->orderBy('tbl_lead.id', 'DESC')
+        ->skip($offset)
+        ->take($limit)
+        ->get();
+
+    // ✅ COUNT (clone use karo warna limit lag jayega)
+    $totalTasks = (clone $query)->count();
+
+    return response()->json([
+        "data" => $tasks,
+        "total_tasks" => $totalTasks,
+        "page" => $page,
+        "per_page" => $limit
     ]);
 }
   public function leads_projects_list($id, Request $request)

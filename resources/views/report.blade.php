@@ -114,8 +114,8 @@ $admins = DB::select("SELECT id,name FROM tbl_users WHERE user_type='admin' AND 
 <th>TotalTask</th>
 <th>DelayTask</th>
 <th>9:30-11:30</th>
-<th>11:30-01:00</th>
-<th>01:00-02:00</th>
+<th>11:30-01:30</th>
+<th>01:30-02:00</th>
 <th>02:00-03:30</th>
 <th>03:30-05:00</th>
 <th>05:00-06:30</th>

@@ -212,7 +212,7 @@ Route::get('admin/leads_users_list_project/{id?}/{sessid?}', [App\Http\Controlle
 Route::get('admin/leads_projects_list/{id?}', [App\Http\Controllers\LeadController::class, 'leads_projects_list']);
 Route::get('admin/leads_category_list/{id?}', [App\Http\Controllers\LeadController::class, 'leads_category_list']);
 Route::get('admin/leads_status_list/{id?}', [App\Http\Controllers\LeadController::class, 'leads_status_list']);
-
+Route::get('admin/project_tasks/{projectId}/{userId}', [App\Http\Controllers\LeadController::class, 'project_tasks']);
 
 
 

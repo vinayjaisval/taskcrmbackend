@@ -1028,6 +1028,7 @@ public function all_agent_list_data(Request $request)
         ->where('tbl_users.user_type', 'agent')
         ->groupBy('tbl_users.id', 'tbl_users.name')
         ->orderBy('tbl_users.name', 'ASC')
+       
         ->get();
 
     return response()->json($agents);
