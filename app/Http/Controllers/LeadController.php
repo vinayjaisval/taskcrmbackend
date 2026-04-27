@@ -546,6 +546,7 @@ public function project_tasks($projectId,$userId, Request $request)
     $page = $request->get('page', 1);
     $limit = 12;
     $offset = ($page - 1) * $limit;
+     $keywords = $request->get('keywords');
 
     $query = Lead::from('tbl_lead')
         ->leftJoin('tbl_source', 'tbl_source.id', '=', 'tbl_lead.status')
@@ -569,6 +570,12 @@ public function project_tasks($projectId,$userId, Request $request)
     // ✅ FIX 2: project filter (comma-separated handle)
     if (!empty($projectName)) {
         $query->whereRaw('FIND_IN_SET(?, tbl_lead.project)', [$projectName]);
+    }
+    if (!empty($keywords)) {
+      $query->where(function ($query) use ($keywords) {
+        $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
+          ->orWHERE('tbl_source.name', 'like', '%' . $keywords . '%');
+      });
     }
 
     // ✅ DATA
@@ -4554,12 +4561,15 @@ public function project_tasks($projectId,$userId, Request $request)
   }
 
 
-  public function assignee_details($id, Request $request)
-  {
-    $sql = "SELECT id, name FROM `tbl_users` WHERE 1 AND id IN ($id)";
-    $assinee = DB::select($sql);
-    return response()->json($assinee);
-  }
+public function assignee_details($id)
+{
+    $assignee = DB::table('tbl_users')
+        ->select('id', 'name')
+        ->where('id', $id)
+        ->get();
+
+    return response()->json($assignee);
+}
 
 
   public function get_user_tot_task($id, Request $request)
