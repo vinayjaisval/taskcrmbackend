@@ -227,7 +227,7 @@ class LeadController extends Controller
     if (!empty($keywords)) {
       $leads = $leads->where(function ($query) use ($keywords) {
         $query->WHERE('tbl_lead.name', 'like', '%' . $keywords . '%')
-          ->orWHERE('tbl_category.name', 'like', '%' . $keywords . '%');
+          ->orWHERE('tbl_source.name', 'like', '%' . $keywords . '%');
       });
     }
 
@@ -4561,15 +4561,19 @@ public function project_tasks($projectId,$userId, Request $request)
   }
 
 
-public function assignee_details($id)
+public function assignee_details($ids)
 {
+    $idsArray = explode(',', $ids); // 1,2,3
+
     $assignee = DB::table('tbl_users')
         ->select('id', 'name')
-        ->where('id', $id)
+        ->whereIn('id', $idsArray)
         ->get();
 
     return response()->json($assignee);
 }
+
+
 
 
   public function get_user_tot_task($id, Request $request)
