@@ -204,7 +204,22 @@ AND (a.updatetime BETWEEN '".date('Y-m-d 11:30:00')."' AND '".date('Y-m-d 13:00:
 OR a.updatetimes BETWEEN '".date('Y-m-d 11:30:00')."' AND '".date('Y-m-d 13:00:00')."')
 ORDER BY a.id DESC LIMIT 1");
 @endphp
-{!! $d ? "<div>".$d[0]->name."</div><small>".$d[0]->total_time_assign." Min</small>" : "<span class='no-task'>No Task</span>" !!}
+
+@if($d)
+    @php
+        $minutes = $d[0]->total_time_assign;
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+    @endphp
+
+    <div>{{ $d[0]->name }}</div>
+    <small>
+        {{ $hours > 0 ? $hours . ' hr ' : '' }}
+        {{ $remainingMinutes }} min
+    </small>
+@else
+    <span class="no-task">No Task</span>
+@endif
 </td>
 
 <td><b>Lunch</b></td>
@@ -218,7 +233,22 @@ AND (a.updatetime BETWEEN '".date('Y-m-d 14:00:00')."' AND '".date('Y-m-d 15:30:
 OR a.updatetimes BETWEEN '".date('Y-m-d 14:00:00')."' AND '".date('Y-m-d 15:30:00')."')
 ORDER BY a.id DESC LIMIT 1");
 @endphp
-{!! $d ? "<div>".$d[0]->name."</div><small>".$d[0]->total_time_assign." Min</small>" : "<span class='no-task'>No Task</span>" !!}
+
+@if($d)
+    @php
+        $minutes = $d[0]->total_time_assign;
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+    @endphp
+
+    <div>{{ $d[0]->name }}</div>
+    <small>
+        {{ $hours > 0 ? $hours . ' hr ' : '' }}
+        {{ $remainingMinutes }} min
+    </small>
+@else
+    <span class="no-task">No Task</span>
+@endif
 </td>
 
 <!-- SLOT 4 -->
@@ -230,7 +260,22 @@ AND (a.updatetime BETWEEN '".date('Y-m-d 15:30:00')."' AND '".date('Y-m-d 17:00:
 OR a.updatetimes BETWEEN '".date('Y-m-d 15:30:00')."' AND '".date('Y-m-d 17:00:00')."')
 ORDER BY a.id DESC LIMIT 1");
 @endphp
-{!! $d ? "<div>".$d[0]->name."</div><small>".$d[0]->total_time_assign." Min</small>" : "<span class='no-task'>No Task</span>" !!}
+
+@if($d)
+    @php
+        $minutes = $d[0]->total_time_assign;
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+    @endphp
+
+    <div>{{ $d[0]->name }}</div>
+    <small>
+        {{ $hours > 0 ? $hours . ' hr ' : '' }}
+        {{ $remainingMinutes }} min
+    </small>
+@else
+    <span class="no-task">No Task</span>
+@endif
 </td>
 
 <!-- SLOT 5 -->
@@ -242,10 +287,23 @@ AND (a.updatetime BETWEEN '".date('Y-m-d 17:00:00')."' AND '".date('Y-m-d 18:30:
 OR a.updatetimes BETWEEN '".date('Y-m-d 17:00:00')."' AND '".date('Y-m-d 18:30:00')."')
 ORDER BY a.id DESC LIMIT 1");
 @endphp
-{!! $d ? "<div>".$d[0]->name."</div><small>".$d[0]->total_time_assign." Min</small>" : "<span class='no-task'>No Task</span>" !!}
-</td>
 
-</tr>
+@if($d)
+    @php
+        $minutes = $d[0]->total_time_assign;
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+    @endphp
+
+    <div>{{ $d[0]->name }}</div>
+    <small>
+        {{ $hours > 0 ? $hours . ' hr ' : '' }}
+        {{ $remainingMinutes }} min
+    </small>
+@else
+    <span class="no-task">No Task</span>
+@endif
+</td>
 
 @php $i++; @endphp
 @endforeach
