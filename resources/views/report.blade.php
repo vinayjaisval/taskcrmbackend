@@ -177,7 +177,22 @@ AND (a.updatetime BETWEEN '".date('Y-m-d 09:30:00')."' AND '".date('Y-m-d 11:30:
 OR a.updatetimes BETWEEN '".date('Y-m-d 09:30:00')."' AND '".date('Y-m-d 11:30:00')."')
 ORDER BY a.id DESC LIMIT 1");
 @endphp
-{!! $d ? "<div>".$d[0]->name."</div><small>".$d[0]->total_time_assign." Min</small>" : "<span class='no-task'>No Task</span>" !!}
+
+@if($d)
+    @php
+        $minutes = $d[0]->total_time_assign;
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+    @endphp
+
+    <div>{{ $d[0]->name }}</div>
+    <small>
+        {{ $hours > 0 ? $hours . ' hr ' : '' }}
+        {{ $remainingMinutes }} min
+    </small>
+@else
+    <span class="no-task">No Task</span>
+@endif
 </td>
 
 <!-- SLOT 2 -->
